@@ -9,11 +9,9 @@ import android.widget.TextView;
 import java.util.List;
 
 /**
- * TODO
+ * 蓝牙列表
  *
- * @author cWX708605
- * @version [V6.0.0.1, 2019/6/13]
- * @since V6.0.0.1
+ * @author chris
  */
 public class MyAdapter extends BaseAdapter {
 
@@ -48,7 +46,7 @@ public class MyAdapter extends BaseAdapter {
     @Override
     public View getView(int i, View view, ViewGroup viewGroup) {
 
-        View v = View.inflate(mainActivity, R.layout.item, null);
+        View v = View.inflate(mainActivity, R.layout.item_device_list, null);
 
         TextView name = (TextView) v.findViewById(R.id.name);
         TextView address = (TextView) v.findViewById(R.id.adress);
