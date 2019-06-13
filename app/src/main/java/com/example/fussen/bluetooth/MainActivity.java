@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MyAdapter ListAdapter;
     private BluetoothGatt mBluetoothGatt;
 
-    private boolean isComment = false;
+    private boolean isSameDevice = false;
 
     public static final UUID UUID1 = UUID.fromString("00001800-0000-1000-8000-00805f9b34fb");
 
@@ -103,7 +103,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         //第二步 拿到蓝牙管理器
         manager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-
         bluetoothAdapter = manager.getAdapter();
 
     }
@@ -111,7 +110,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View view) {
         if (view == open) {
-
             //检查蓝牙是否已打开 如未打开 则打开蓝牙
             if (!bluetoothAdapter.isEnabled()) {
                 bluetoothAdapter.enable();
@@ -119,9 +117,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
 
         } else if (view == scanner) {
-
-
-            //扫描蓝牙
+            //判断蓝牙扫描状态
             if (!bluetoothAdapter.isEnabled()) {
                 Toast.makeText(this, "请先打开蓝牙后扫描", Toast.LENGTH_SHORT).show();
                 return;
@@ -130,13 +126,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Toast.makeText(this, "正在扫描中,不要重复扫描", Toast.LENGTH_SHORT).show();
                 return;
             }
-
             //开始扫描
             scannerBluetooth();
             Toast.makeText(this, "开始扫描蓝牙", Toast.LENGTH_SHORT).show();
 
         } else if (view == close) {
-
             //关闭蓝牙
             if (bluetoothAdapter.isDiscovering()) {
                 bluetoothAdapter.stopLeScan(mLeScanCallback);
@@ -152,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Toast.makeText(this, "停止扫描", Toast.LENGTH_SHORT).show();
             }
         } else if (view == play) {
-
+            // 发送数据
             sendData();
         } else if (view == btn_disconnect) {
             //断开连接
@@ -190,12 +184,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-
     /**
      * 扫面蓝牙设备
      */
     private void scannerBluetooth() {
-
 
         //10秒钟后停止扫描，扫描蓝牙设备是很费资源的
         mhandler.postDelayed(new Runnable() {
@@ -204,7 +196,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mScanning = false;
                 bluetoothAdapter.stopLeScan(mLeScanCallback);
             }
-        }, 300000);
+        }, 60000);
 
         mScanning = true;
         //需要参数 BluetoothAdapter.LeScanCallback(返回的扫描结果)
@@ -212,9 +204,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-
     /**
-     * 蓝牙扫面结果的回调
+     * 蓝牙扫描结果的回调
      */
     private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
 
@@ -223,27 +214,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             if (bluetoothDevice != null && bluetoothDevice.getName() != null) {
 
-                if (mData.size() == 0) {
+                if (mData.size() == 0) {// 没有扫描到设备？？？
+                    Log.e("chris","mData.size()==0");
                     mData.add(bluetoothDevice);
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            //将扫描的到的bluetoothDevice添加到集合中 展示出来
                             ListAdapter.setData(mData);
                         }
                     });
 
                     for (int y = 0; y < mData.size(); y++) {
-                        Log.e("chris","=====蓝牙设备name==" + mData.get(y).getName());
-                        Log.e("chris","=====address==" + mData.get(y).getAddress());
+                        Log.e("chris", "=====size0 蓝牙设备name==" + mData.get(y).getName());
+                        Log.e("chris", "=====size0 address==" + mData.get(y).getAddress());
                     }
                 } else {
                     for (int x = 0; x < mData.size(); x++) {
-                        isComment = mData.get(x).getAddress().equals(bluetoothDevice.getAddress()) ? true : false;
-                        if (isComment) {
-                            isComment = false;
+                        isSameDevice = mData.get(x).getAddress().equals(bluetoothDevice.getAddress()) ? true : false;
+                        if (isSameDevice) {
+                            isSameDevice = false;
                             break;
                         } else {
+                            Log.e("chris", x + "=====蓝牙设备name==" + bluetoothDevice.getName());
+                            Log.e("chris", x + "=====address==" + bluetoothDevice.getAddress());
+                            //将扫描的到的bluetoothDevice添加到集合中 展示出来
                             mData.add(bluetoothDevice);
                             ListAdapter.setData(mData);
                         }
@@ -273,15 +267,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-
     private Handler mhandler = new Handler() {
 
         @Override
         public void handleMessage(Message msg) {
 
-            int type = msg.what;
-
-            switch (type) {
+            switch (msg.what) {
                 case FIND_SERVICE:
 
                     for (int x = 0; x < services.size(); x++) {
@@ -307,7 +298,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     };
 
-
     private BluetoothGattCallback mBluetoothGattCallback = new BluetoothGattCallback() {
 
         /**
@@ -318,7 +308,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
 
-            Log.e("chris","===搜到服务===");
+            Log.e("chris", "===搜到服务===");
             if (status == BluetoothGatt.GATT_SUCCESS) {//发现该设备的服务
 
                 //拿到该服务 1,通过UUID拿到指定的服务  2,可以拿到该设备上所有服务的集合
@@ -327,7 +317,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 //可以遍历获得该设备上的服务集合，通过服务可以拿到该服务的UUID，和该服务里的所有属性Characteristic
                 for (int x = 0; x < serviceList.size(); x++) {
-                    Log.e("chris","=======BluetoothGattService蓝牙的服务==UUID===getUuid()==" + serviceList.get(x).getUuid());
+                    Log.e("chris", "=======BluetoothGattService蓝牙的服务==UUID===getUuid()==" + serviceList.get(x).getUuid());
                     services.add(serviceList.get(x));
                 }
                 Message message = new Message();
@@ -347,17 +337,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
-
         /**
          * 蓝牙连接状态改变后调用 此回调 (断开，连接)
          * @param gatt
          * @param status
          * @param newState
          */
-
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            Log.e("chris","===newState===" + newState);
+            Log.e("chris", "===newState===" + newState);
             if (newState == BluetoothProfile.STATE_CONNECTED) {//连接成功
                 Message message = new Message();
                 message.what = CONNECT_SUCCESS;
@@ -371,7 +359,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mhandler.sendMessage(message);
             }
         }
-
 
         /**
          * Characteristic数据发送后调用此方法
@@ -396,7 +383,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
-
         //某Characteristic的状态为可读时的回调
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
@@ -408,7 +394,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
-
         // 订阅了远端设备的Characteristic信息后，
         // 当远端设备的Characteristic信息发生改变后,回调此方法
         @Override
@@ -417,9 +402,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             readCharacterisricValue(characteristic);
 
         }
-
     };
-
 
     /**
      * 读取BluetoothGattCharacteristic中的数据
