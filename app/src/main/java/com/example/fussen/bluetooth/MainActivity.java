@@ -14,16 +14,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.fussen.bluetooth.bean.LogUtil;
 import com.example.fussen.bluetooth.bean.ToastUtil;
 
 import java.util.ArrayList;
@@ -43,7 +40,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private BluetoothManager manager;
     private BluetoothAdapter bluetoothAdapter;
 
-
     private List<BluetoothDevice> mData = new ArrayList<>();
     private MyAdapter ListAdapter;
     private BluetoothGatt mBluetoothGatt;
@@ -51,8 +47,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private boolean isComment = false;
 
     public static final UUID UUID1 = UUID.fromString("00001800-0000-1000-8000-00805f9b34fb");
-    private static final UUID UUID2 = UUID.fromString("00001801-0000-1000-8000-00805f9b34fb");
-    private static final UUID UUID3 = UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
 
     private static final int FIND_SERVICE = 1;
     private static final int SEND_DATA_FAIL = 2;
@@ -61,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final int CONNECT_FIAL = 5;
     private List<BluetoothGattService> services = new ArrayList<>();
 
+    //
     private List<BluetoothGattCharacteristic> characteristics = new ArrayList<>();
 
     private boolean mScanning;
@@ -94,6 +89,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         scanner.setOnClickListener(this);
         close.setOnClickListener(this);
         listview.setOnItemClickListener(this);
+
+        ListAdapter = new MyAdapter(MainActivity.this, mData);
+        listview.setAdapter(ListAdapter);
     }
 
     private void initBluetooth() {
@@ -206,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mScanning = false;
                 bluetoothAdapter.stopLeScan(mLeScanCallback);
             }
-        }, 10000);
+        }, 300000);
 
         mScanning = true;
         //需要参数 BluetoothAdapter.LeScanCallback(返回的扫描结果)
@@ -222,7 +220,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         @Override
         public void onLeScan(BluetoothDevice bluetoothDevice, int i, byte[] bytes) {
-            LogUtil.fussenLog().d("1008611" + "=====已扫描到蓝牙设备==");
 
             if (bluetoothDevice != null && bluetoothDevice.getName() != null) {
 
@@ -232,14 +229,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         @Override
                         public void run() {
                             //将扫描的到的bluetoothDevice添加到集合中 展示出来
-                            ListAdapter = new MyAdapter(mData);
-                            listview.setAdapter(ListAdapter);
+                            ListAdapter.setData(mData);
                         }
                     });
 
                     for (int y = 0; y < mData.size(); y++) {
-                        LogUtil.fussenLog().d("1008611" + "=====蓝牙设备name==" + mData.get(y).getName());
-                        LogUtil.fussenLog().d("1008611" + "=====address==" + mData.get(y).getAddress());
+                        Log.e("chris","=====蓝牙设备name==" + mData.get(y).getName());
+                        Log.e("chris","=====address==" + mData.get(y).getAddress());
                     }
                 } else {
                     for (int x = 0; x < mData.size(); x++) {
@@ -254,7 +250,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 }
 
-            } else {
             }
         }
     };
@@ -323,7 +318,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
 
-            LogUtil.fussenLog().d("10086" + "===搜到服务===");
+            Log.e("chris","===搜到服务===");
             if (status == BluetoothGatt.GATT_SUCCESS) {//发现该设备的服务
 
                 //拿到该服务 1,通过UUID拿到指定的服务  2,可以拿到该设备上所有服务的集合
@@ -332,7 +327,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 //可以遍历获得该设备上的服务集合，通过服务可以拿到该服务的UUID，和该服务里的所有属性Characteristic
                 for (int x = 0; x < serviceList.size(); x++) {
-                    LogUtil.fussenLog().d("10086" + "=======BluetoothGattService蓝牙的服务==UUID===getUuid()==" + serviceList.get(x).getUuid());
+                    Log.e("chris","=======BluetoothGattService蓝牙的服务==UUID===getUuid()==" + serviceList.get(x).getUuid());
                     services.add(serviceList.get(x));
                 }
                 Message message = new Message();
@@ -362,7 +357,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            LogUtil.fussenLog().d("10086" + "===newState===" + newState);
+            Log.e("chris","===newState===" + newState);
             if (newState == BluetoothProfile.STATE_CONNECTED) {//连接成功
                 Message message = new Message();
                 message.what = CONNECT_SUCCESS;
@@ -440,48 +435,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             buffer.append(Integer.toHexString(i));
         }
     }
-
-    public class MyAdapter extends BaseAdapter {
-
-        private List<BluetoothDevice> list;
-
-        public MyAdapter(List<BluetoothDevice> data) {
-            this.list = data;
-        }
-
-        @Override
-        public int getCount() {
-            return mData.size();
-        }
-
-        @Override
-        public Object getItem(int i) {
-            return null;
-        }
-
-        @Override
-        public long getItemId(int i) {
-            return 0;
-        }
-
-        public void setData(List<BluetoothDevice> data) {
-            this.list = data;
-            notifyDataSetChanged();
-        }
-
-        @Override
-        public View getView(int i, View view, ViewGroup viewGroup) {
-
-            View v = View.inflate(MainActivity.this, R.layout.item, null);
-
-            TextView name = (TextView) v.findViewById(R.id.name);
-            TextView address = (TextView) v.findViewById(R.id.adress);
-            name.setText(list.get(i).getName() + ": ");
-            address.setText(list.get(i).getAddress());
-            return v;
-        }
-    }
-
 
     @Override
     protected void onDestroy() {
